@@ -12,6 +12,7 @@ so you need to adjust the config accordingly.
 * Now possible to choose the output format (xlsx, jsonl or csv)
 * Default adb port can be changed
 * Option to check for plausible governor power during kingdom scan on the power ranking page
+* Firebase listener can now run the kingdom scanner automatically from Firestore jobs
 
 ## Summary
 
