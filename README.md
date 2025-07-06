@@ -180,6 +180,31 @@ The second way of using the scanner is by using the python files directly. Howev
 3. [Only for kingdom scan] Account must be lower in ranks than the amount of players you want to scan. e.g. Cannot scan top 100 when character's rank is 85. Use a farm account instead.
 4. [Only for kingdom scan] Resume Scan option starts scanning the middle governor that is displayed in screen. The 4th in order. So before starting the tool make sure that you are in the correct view in bluestacks.
 
+## Remote scans via Firebase
+
+The `firebase_listener.py` script can automatically start scans when a job document
+appears in Firestore. Each document should at least contain a `status` field with
+the value `pending`. The following optional fields can be used to override the
+local configuration:
+
+- `adbPort` – emulator adb port
+- `kingdom` – kingdom name
+- `amount` – number of governors to scan
+- `mode` – `full` or `seed`
+- `resume` – resume the current ranking page
+- `advancedScroll` – use advanced scrolling behaviour
+- `trackInactives` – save screenshots of inactive players
+- `validateKills` – check kills against kill points
+- `reconstructKills` – try to recover invalid kills
+- `validatePower` – compare power with previous player
+- `powerThreshold` – max allowed power difference
+- `infoTime` – wait time to close the info window
+- `govTime` – wait time to return to the ranking
+- `formats` – object with `xlsx`, `csv` and `jsonl` booleans
+- `scanOptions` – object defining which stats are collected
+
+When these fields are provided the bot will start with the specified values.
+
 # Error reporting / help
 Recently people started to random guess my discord name. So I'll just make it public here, it's simply cyrexxis same as my Github username.
 

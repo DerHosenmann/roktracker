@@ -22,44 +22,49 @@ USER_ID = "YOUR_USER_ID_HERE"
 # --- Bot Logic ---
 
 
-def _build_scan_options(mode: str) -> dict:
-    """Return scan options for the given mode."""
-    if mode == "seed":
-        return {
-            "ID": True,
-            "Name": True,
-            "Power": True,
-            "Killpoints": True,
-            "Alliance": True,
-            "T1 Kills": False,
-            "T2 Kills": False,
-            "T3 Kills": False,
-            "T4 Kills": False,
-            "T5 Kills": False,
-            "Ranged": False,
-            "Deads": False,
-            "Rss Assistance": False,
-            "Rss Gathered": False,
-            "Helps": False,
-        }
-    # default to full scan
-    return {
-        "ID": True,
-        "Name": True,
-        "Power": True,
-        "Killpoints": True,
-        "Alliance": True,
-        "T1 Kills": True,
-        "T2 Kills": True,
-        "T3 Kills": True,
-        "T4 Kills": True,
-        "T5 Kills": True,
-        "Ranged": True,
-        "Deads": True,
-        "Rss Assistance": True,
-        "Rss Gathered": True,
-        "Helps": True,
-    }
+DEFAULT_SCAN_OPTIONS_FULL = {
+    "ID": True,
+    "Name": True,
+    "Power": True,
+    "Killpoints": True,
+    "Alliance": True,
+    "T1 Kills": True,
+    "T2 Kills": True,
+    "T3 Kills": True,
+    "T4 Kills": True,
+    "T5 Kills": True,
+    "Ranged": True,
+    "Deads": True,
+    "Rss Assistance": True,
+    "Rss Gathered": True,
+    "Helps": True,
+}
+
+DEFAULT_SCAN_OPTIONS_SEED = {
+    **{k: v for k, v in DEFAULT_SCAN_OPTIONS_FULL.items()},
+    "T1 Kills": False,
+    "T2 Kills": False,
+    "T3 Kills": False,
+    "T4 Kills": False,
+    "T5 Kills": False,
+    "Ranged": False,
+    "Deads": False,
+    "Rss Assistance": False,
+    "Rss Gathered": False,
+    "Helps": False,
+}
+
+
+def _build_scan_options(mode: str, overrides: dict | None = None) -> dict:
+    """Return scan options for the given mode with optional overrides."""
+    options = DEFAULT_SCAN_OPTIONS_SEED if mode == "seed" else DEFAULT_SCAN_OPTIONS_FULL
+    options = {k: v for k, v in options.items()}
+
+    if overrides:
+        for key in options:
+            if key in overrides:
+                options[key] = bool(overrides[key])
+    return options
 
 
 def run_scan_bot(scan_doc_ref, scan_data) -> None:
@@ -90,15 +95,52 @@ def run_scan_bot(scan_doc_ref, scan_data) -> None:
     try:
         config = load_config()
 
-        bluestacks_port = int(scan_data.get("adbPort", config["general"]["adb_port"]))
+        bluestacks_port = int(
+            scan_data.get("adbPort", config["general"]["adb_port"])
+        )
         kingdom = scan_data.get("kingdom", config["scan"]["kingdom_name"]) or ""
-        amount = int(scan_data.get("amount", config["scan"]["people_to_scan"] or 0))
+        amount = int(
+            scan_data.get("amount", config["scan"]["people_to_scan"] or 0)
+        )
         mode = scan_data.get("mode", "full")
 
-        scan_options = _build_scan_options(mode)
+        scan_options = _build_scan_options(mode, scan_data.get("scanOptions"))
+
+        resume = bool(scan_data.get("resume", config["scan"]["resume"]))
+        advanced_scroll = bool(
+            scan_data.get("advancedScroll", config["scan"]["advanced_scroll"])
+        )
+        track_inactives = bool(
+            scan_data.get("trackInactives", config["scan"]["track_inactives"])
+        )
+        validate_kills = bool(
+            scan_data.get("validateKills", config["scan"]["validate_kills"])
+        )
+        reconstruct_kills = bool(
+            scan_data.get("reconstructKills", config["scan"]["reconstruct_kills"])
+        )
+        validate_power = bool(
+            scan_data.get("validatePower", config["scan"]["validate_power"])
+        )
+        power_threshold = int(
+            scan_data.get("powerThreshold", config["scan"]["power_threshold"])
+        )
+        info_close = float(
+            scan_data.get("infoTime", config["scan"]["timings"]["info_close"])
+        )
+        gov_close = float(
+            scan_data.get("govTime", config["scan"]["timings"]["gov_close"])
+        )
 
         output_formats = OutputFormats()
-        output_formats.from_dict(config["scan"]["formats"])
+        if isinstance(scan_data.get("formats"), dict):
+            output_formats.from_dict(scan_data["formats"])
+        else:
+            output_formats.from_dict(config["scan"]["formats"])
+
+        config["scan"]["timings"]["info_close"] = info_close
+        config["scan"]["timings"]["gov_close"] = gov_close
+        config["scan"]["advanced_scroll"] = advanced_scroll
 
         scanner = KingdomScanner(config, scan_options, bluestacks_port)
         scanner.set_governor_callback(gov_callback)
@@ -108,12 +150,12 @@ def run_scan_bot(scan_doc_ref, scan_data) -> None:
         scanner.start_scan(
             kingdom,
             amount,
-            config["scan"]["resume"],
-            config["scan"]["track_inactives"],
-            config["scan"]["validate_kills"],
-            config["scan"]["reconstruct_kills"],
-            config["scan"]["validate_power"],
-            config["scan"]["power_threshold"],
+            resume,
+            track_inactives,
+            validate_kills,
+            reconstruct_kills,
+            validate_power,
+            power_threshold,
             output_formats,
         )
 
